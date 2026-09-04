@@ -1,0 +1,877 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CareerPilot AI — AI Career Guidance Dashboard</title>
+    <meta
+      name="description"
+      content="CareerPilot AI is a mobile-first career guidance dashboard with career analysis, skill gaps, roadmaps, resume scoring and mock interviews."
+    />
+    <meta property="og:title" content="CareerPilot AI — AI Career Guidance Dashboard" />
+    <meta
+      property="og:description"
+      content="Plan your next career move with AI-driven analysis, skill gap insights, roadmaps and interview practice."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <!-- ============================================================ -->
+    <!-- LOGIN / REGISTER SCREEN                                       -->
+    <!-- Shown first. Real fetch() calls to /api/login and             -->
+    <!-- /api/register — these routes don't exist in app.py yet, so    -->
+    <!-- until they do, the form will show an honest message instead   -->
+    <!-- of a fake success. "Continue without an account" is a         -->
+    <!-- temporary bypass for testing the rest of the app.             -->
+    <!-- ============================================================ -->
+    <div id="authScreen">
+      <header class="topbar" style="position: static">
+        <div class="logo">CP</div>
+        <div>
+          <h1>CareerPilot AI</h1>
+          <p>Sign in to continue</p>
+        </div>
+      </header>
+
+      <main>
+        <div class="card" style="max-width: 420px; margin: 24px auto">
+          <div class="grid two" style="margin-bottom: 14px">
+            <button class="btn ghost" id="showLoginBtn" type="button">Login</button>
+            <button class="btn ghost" id="showRegisterBtn" type="button">Register</button>
+          </div>
+
+          <form id="loginForm">
+            <label for="loginEmail">Email</label>
+            <input id="loginEmail" type="email" placeholder="you@example.com" required />
+            <label for="loginPassword">Password</label>
+            <input id="loginPassword" type="password" placeholder="Your password" required />
+            <button class="btn" type="submit">Login</button>
+          </form>
+
+          <form id="registerForm" hidden>
+            <label for="registerName">Full name</label>
+            <input id="registerName" type="text" placeholder="Your name" required />
+            <label for="registerEmail">Email</label>
+            <input id="registerEmail" type="email" placeholder="you@example.com" required />
+            <label for="registerPassword">Password</label>
+            <input id="registerPassword" type="password" placeholder="Create a password" required />
+            <button class="btn" type="submit">Create account</button>
+          </form>
+
+          <p class="hint" id="authMsg" style="margin-top: 10px"></p>
+
+          <button class="btn ghost" id="continueWithoutLoginBtn" type="button" style="margin-top: 14px">
+            Continue without an account (temporary)
+          </button>
+        </div>
+      </main>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- MAIN APP — hidden until login / "continue without account"   -->
+    <!-- ============================================================ -->
+    <div id="appShell" hidden>
+      <header class="topbar">
+        <div class="logo">CP</div>
+        <div>
+          <h1>CareerPilot AI</h1>
+          <p>AI career guidance</p>
+        </div>
+        <div class="spacer"></div>
+        <div class="avatar" id="avatarInitial">?</div>
+      </header>
+
+      <main>
+        <!-- HOME / DASHBOARD -->
+        <section class="view active" id="home">
+          <div class="view-head">
+            <h2 id="homeWelcome">Welcome!</h2>
+            <p>Here's where your career stands today.</p>
+          </div>
+
+          <div class="grid two">
+            <div class="card stat"><b id="homeMatch">—</b><span>Career match</span></div>
+            <div class="card stat"><b id="homeStrength">—</b><span>Profile strength</span></div>
+            <div class="card stat"><b id="homeResumeScore">—</b><span>Resume score</span></div>
+            <div class="card stat"><b id="homeSkillGaps">—</b><span>Skill gaps</span></div>
+          </div>
+
+          <div class="card">
+            <h3>Your roles</h3>
+            <p class="hint" id="homeRoles">Save your profile to see your current and target role here.</p>
+          </div>
+
+          <div class="card">
+            <h3>Next step</h3>
+            <p class="hint" id="homeNextStep">Start by saving your profile.</p>
+          </div>
+
+          <div class="card">
+            <h3>Quick actions</h3>
+            <div class="grid two">
+              <button class="btn ghost" type="button" data-goto="analysis">Career analysis</button>
+              <button class="btn ghost" type="button" data-goto="skills">Skill gap</button>
+              <button class="btn ghost" type="button" data-goto="roadmap">Roadmap</button>
+              <button class="btn ghost" type="button" data-goto="resume">Resume</button>
+              <button class="btn ghost" type="button" data-goto="interview">Interview</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- PROFILE -->
+        <section class="view" id="profile">
+          <div class="view-head">
+            <h2>Your profile</h2>
+            <p>Used by the AI engine to personalise every recommendation.</p>
+          </div>
+
+          <div class="card">
+            <h3>Basic details</h3>
+            <form id="profileForm">
+              <label for="pname">Full name</label>
+              <input id="pname" placeholder="Enter your name" />
+              <label for="prole">Current role</label>
+              <input id="prole" placeholder="e.g. Final-year CS student" />
+              <label for="ptarget">Target role</label>
+              <input id="ptarget" placeholder="e.g. DevOps Engineer" />
+              <label for="pskills">Skills (comma separated)</label>
+              <input id="pskills" placeholder="e.g. Python, SQL, Excel, Statistics" />
+              <label for="pexp">Experience</label>
+              <select id="pexp">
+                <option>0–1 years</option>
+                <option>1–3 years</option>
+                <option>3–5 years</option>
+                <option>5–9 years</option>
+                <option>9+ years</option>
+              </select>
+              <button class="btn" type="submit">Save profile</button>
+            </form>
+            <p class="hint" id="profileMsg" style="margin-top: 10px"></p>
+          </div>
+
+          <!-- RESUME UPLOAD (frontend UI only — see notes in JS) -->
+          <div class="card">
+            <h3>Resume upload</h3>
+            <p class="hint" id="resumeUploadStatus">No resume uploaded yet.</p>
+            <input type="file" id="resumeFileInput" accept=".pdf,.doc,.docx" hidden />
+            <button class="btn ghost" id="chooseResumeBtn" type="button">Upload resume</button>
+
+            <div id="resumeFileRow" hidden style="margin-top: 12px">
+              <div class="row"><span id="resumeFileName"></span><b id="resumeFileSize"></b></div>
+              <button class="btn" id="uploadResumeBtn" type="button">Upload</button>
+              <button class="btn ghost" id="replaceResumeBtn" type="button" style="margin-top: 8px">
+                Replace resume
+              </button>
+              <button class="btn ghost" id="removeResumeBtn" type="button" style="margin-top: 8px">
+                Remove resume
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- CAREER ANALYSIS -->
+        <section class="view" id="analysis">
+          <div class="view-head">
+            <h2>Career analysis</h2>
+            <p>AI-powered analysis based on your profile.</p>
+          </div>
+
+          <div class="card">
+            <span class="tag">Best fit</span>
+            <div class="match">
+              <div class="ring" id="analysisRing" style="--v: 0"><span id="analysisPercent">…</span></div>
+              <div>
+                <h3 id="analysisBestFit">Analyzing…</h3>
+                <p class="hint" id="analysisSubtitle">Open this tab to run your AI career analysis.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Other matching paths</h3>
+            <div id="analysisAlternatives"><p class="hint">Waiting for analysis…</p></div>
+          </div>
+
+          <div class="card">
+            <h3>Why this fits you</h3>
+            <p class="hint" id="analysisWhy">Waiting for analysis…</p>
+            <div class="chips" id="analysisChips" style="margin-top: 10px"></div>
+          </div>
+        </section>
+
+        <!-- SKILL GAP -->
+        <section class="view" id="skills">
+          <div class="view-head">
+            <h2>Skill gap</h2>
+            <p id="skillsTargetRole">Target role: —</p>
+          </div>
+
+          <div class="card">
+            <h3>You already have</h3>
+            <div class="chips" id="existingSkills"><span class="chip good">Loading…</span></div>
+          </div>
+
+          <div class="card">
+            <h3>Missing for the role</h3>
+            <div class="chips" id="missingSkills"><span class="chip gap">Loading…</span></div>
+          </div>
+
+          <div class="card">
+            <h3 id="learningOrderHeading">Suggested learning order</h3>
+            <div id="learningOrder"><p class="hint">Waiting for analysis…</p></div>
+          </div>
+        </section>
+
+        <!-- ROADMAP -->
+        <section class="view" id="roadmap">
+          <div class="view-head">
+            <h2 id="roadmapHeading">Personalized roadmap</h2>
+            <p>Generated from your profile and target role.</p>
+          </div>
+          <div class="card">
+            <ul class="timeline" id="roadmapTimeline">
+              <li><b>Loading…</b><small>Your personalized roadmap is on its way.</small></li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- RESUME ANALYZER -->
+        <section class="view" id="resume">
+          <div class="view-head">
+            <h2>Resume analyzer</h2>
+            <p>Paste your resume text for an AI-powered review.</p>
+          </div>
+
+          <div class="card">
+            <label for="resumeText">Resume text</label>
+            <textarea id="resumeText" placeholder="Paste your resume here..."></textarea>
+            <button class="btn" id="resumeBtn" type="button">Analyze resume</button>
+          </div>
+
+          <div class="card" id="resumeResult" hidden>
+            <span class="tag">AI analysis</span>
+            <div class="match">
+              <div class="ring" style="--v: 0"><span id="resumeScore">0</span></div>
+              <div>
+                <h3 id="resumeHeadline">Resume review</h3>
+                <p class="hint" id="resumeHintText"></p>
+              </div>
+            </div>
+            <div class="chips" id="resumeChips" style="margin-top: 14px"></div>
+            <p class="hint" id="resumeExtra" style="margin-top: 10px"></p>
+          </div>
+        </section>
+
+        <!-- MOCK INTERVIEW -->
+        <section class="view" id="interview">
+          <div class="view-head">
+            <h2>Mock interview</h2>
+            <p>AI-generated questions with real-time feedback.</p>
+          </div>
+
+          <div class="card">
+            <span class="tag">Question <span id="qIndex">1</span> of <span id="qTotal">5</span></span>
+            <h3 id="qText">Loading questions…</h3>
+            <label for="answer">Your answer</label>
+            <textarea id="answer" placeholder="Answer in 3–4 sentences..."></textarea>
+            <button class="btn" id="submitAnswer" type="button">Submit answer</button>
+            <button class="btn ghost" id="nextQ" type="button">Next question</button>
+            <p class="hint" id="feedback" style="margin-top: 12px"></p>
+          </div>
+        </section>
+
+        <!-- AI ASSISTANT -->
+        <section class="view" id="assistant">
+          <div class="view-head">
+            <h2>AI assistant</h2>
+            <p>Powered by Gemini — ask about roles, skills or interview prep.</p>
+          </div>
+
+          <div class="card">
+            <div class="thread" id="thread">
+              <div class="msg ai">Hi! Ask me about roles, skills or interview prep.</div>
+            </div>
+            <div class="composer">
+              <input id="chatInput" placeholder="Ask something..." />
+              <button class="btn inline" id="sendChat" type="button">Send</button>
+            </div>
+          </div>
+        </section>
+
+        <p class="note">Responses are generated live by Gemini</p>
+      </main>
+
+      <nav class="tabbar" role="tablist" aria-label="Sections">
+        <button role="tab" aria-selected="true" data-view="home">Home</button>
+        <button role="tab" aria-selected="false" data-view="profile">Profile</button>
+        <button role="tab" aria-selected="false" data-view="analysis">Career</button>
+        <button role="tab" aria-selected="false" data-view="skills">Skills</button>
+        <button role="tab" aria-selected="false" data-view="roadmap">Roadmap</button>
+        <button role="tab" aria-selected="false" data-view="resume">Resume</button>
+        <button role="tab" aria-selected="false" data-view="interview">Interview</button>
+        <button role="tab" aria-selected="false" data-view="assistant">Assistant</button>
+      </nav>
+    </div>
+
+    <script>
+      // ---------------------------------------------------------------
+      // Small fetch helpers — every call returns either the real result
+      // or { error: "friendly message" }, so the rest of the code never
+      // has to worry about network failures separately from API errors.
+      // ---------------------------------------------------------------
+      async function postJSON(url, data) {
+        try {
+          var res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data || {}),
+          });
+          if (!res.ok) return { error: "Server error (" + res.status + "). Please try again." };
+          return await res.json();
+        } catch (err) {
+          return { error: "Could not reach the server. Check your connection and try again." };
+        }
+      }
+
+      async function getJSON(url) {
+        try {
+          var res = await fetch(url);
+          if (!res.ok) return { error: "Server error (" + res.status + ")." };
+          return await res.json();
+        } catch (err) {
+          return { error: "Could not reach the server." };
+        }
+      }
+
+      function chipsHtml(list, type) {
+        var html = "";
+        (list || []).forEach(function (item) {
+          html += '<span class="chip ' + type + '">' + item + "</span>";
+        });
+        return html || "";
+      }
+
+      // ---------------------------------------------------------------
+      // Shared state so the Home dashboard can show real numbers from
+      // whichever AI tabs the user has already opened, without making
+      // extra API calls just for the dashboard.
+      // ---------------------------------------------------------------
+      var appState = { career: null, skillGap: null, resume: null };
+
+      // ---------------------------------------------------------------
+      // LOGIN / REGISTER
+      // These call real endpoints. Until /api/login and /api/register
+      // exist in app.py, they will show an honest "not connected yet"
+      // message instead of pretending to succeed.
+      // ---------------------------------------------------------------
+      document.getElementById("showLoginBtn").addEventListener("click", function () {
+        document.getElementById("loginForm").hidden = false;
+        document.getElementById("registerForm").hidden = true;
+        document.getElementById("authMsg").textContent = "";
+      });
+
+      document.getElementById("showRegisterBtn").addEventListener("click", function () {
+        document.getElementById("loginForm").hidden = true;
+        document.getElementById("registerForm").hidden = false;
+        document.getElementById("authMsg").textContent = "";
+      });
+
+      document.getElementById("loginForm").addEventListener("submit", async function (e) {
+        e.preventDefault();
+        var email = document.getElementById("loginEmail").value;
+        var password = document.getElementById("loginPassword").value;
+        document.getElementById("authMsg").textContent = "Signing in...";
+
+        var result = await postJSON("/api/login", { email: email, password: password });
+        if (result.error) {
+          document.getElementById("authMsg").textContent =
+            "Login isn't connected on the server yet (" + result.error + "). " +
+            "You can continue without an account for now.";
+          return;
+        }
+        enterApp(result.name);
+      });
+
+      document.getElementById("registerForm").addEventListener("submit", async function (e) {
+        e.preventDefault();
+        var name = document.getElementById("registerName").value;
+        var email = document.getElementById("registerEmail").value;
+        var password = document.getElementById("registerPassword").value;
+        document.getElementById("authMsg").textContent = "Creating account...";
+
+        var result = await postJSON("/api/register", { name: name, email: email, password: password });
+        if (result.error) {
+          document.getElementById("authMsg").textContent =
+            "Registration isn't connected on the server yet (" + result.error + "). " +
+            "You can continue without an account for now.";
+          return;
+        }
+        enterApp(result.name || name);
+      });
+
+      document.getElementById("continueWithoutLoginBtn").addEventListener("click", function () {
+        enterApp();
+      });
+
+      function enterApp(name) {
+        document.getElementById("authScreen").hidden = true;
+        document.getElementById("appShell").hidden = false;
+        if (name) {
+          document.getElementById("pname").value = name;
+        }
+        loadProfile();
+        renderHome();
+      }
+
+      // ---------------------------------------------------------------
+      // Tab navigation — one shared function used by both the bottom
+      // nav and the "Quick actions" buttons on Home. Lazy-loads each
+      // AI tab's data the first time it's opened.
+      // ---------------------------------------------------------------
+      var loaded = { analysis: false, skills: false, roadmap: false, interview: false };
+      var tabs = document.querySelectorAll(".tabbar button");
+
+      function activateView(name) {
+        tabs.forEach(function (t) {
+          t.setAttribute("aria-selected", t.dataset.view === name ? "true" : "false");
+        });
+        document.querySelectorAll(".view").forEach(function (v) { v.classList.remove("active"); });
+        document.getElementById(name).classList.add("active");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+
+        if (name === "home") renderHome();
+        if (name === "analysis" && !loaded.analysis) { loaded.analysis = true; runCareerAnalysis(); }
+        if (name === "skills" && !loaded.skills) { loaded.skills = true; runSkillGap(); }
+        if (name === "roadmap" && !loaded.roadmap) { loaded.roadmap = true; runRoadmap(); }
+        if (name === "interview" && !loaded.interview) { loaded.interview = true; startInterview(); }
+      }
+
+      tabs.forEach(function (tab) {
+        tab.addEventListener("click", function () { activateView(tab.dataset.view); });
+      });
+
+      document.querySelectorAll("[data-goto]").forEach(function (btn) {
+        btn.addEventListener("click", function () { activateView(btn.dataset.goto); });
+      });
+
+      // ---------------------------------------------------------------
+      // Home dashboard
+      // ---------------------------------------------------------------
+      function updateAvatar() {
+        var n = document.getElementById("pname").value.trim();
+        document.getElementById("avatarInitial").textContent = n ? n.charAt(0).toUpperCase() : "?";
+      }
+
+      function calcProfileStrength() {
+        var fields = [
+          document.getElementById("pname").value,
+          document.getElementById("prole").value,
+          document.getElementById("ptarget").value,
+          document.getElementById("pskills").value,
+          document.getElementById("pexp").value,
+        ];
+        var filled = fields.filter(function (v) { return v && v.trim().length > 0; }).length;
+        return Math.round((filled / fields.length) * 100);
+      }
+
+      function renderHome() {
+        updateAvatar();
+
+        var name = document.getElementById("pname").value.trim();
+        document.getElementById("homeWelcome").textContent = name ? "Welcome, " + name + "!" : "Welcome!";
+
+        document.getElementById("homeStrength").textContent = calcProfileStrength() + "%";
+
+        document.getElementById("homeMatch").textContent =
+          appState.career ? (appState.career.match_percentage || 0) + "%" : "—";
+
+        document.getElementById("homeResumeScore").textContent =
+          appState.resume ? (appState.resume.overall_score || 0) : "—";
+
+        document.getElementById("homeSkillGaps").textContent =
+          appState.skillGap && appState.skillGap.missing_skills ? appState.skillGap.missing_skills.length : "—";
+
+        var current = document.getElementById("prole").value.trim() || "—";
+        var target = document.getElementById("ptarget").value.trim() || "—";
+        document.getElementById("homeRoles").textContent = current + " → " + target;
+
+        var next = "Save your profile to get started.";
+        if (name) {
+          if (!appState.career) {
+            next = "Run your Career Analysis to see your best-fit role.";
+          } else if (!appState.skillGap) {
+            next = "Check your Skill Gap to see what to learn next.";
+          } else if (!appState.resume) {
+            next = "Analyze your resume to get an AI review.";
+          } else if (appState.career.recommendations && appState.career.recommendations.length) {
+            next = appState.career.recommendations[0];
+          } else {
+            next = "You're all set — keep building your roadmap.";
+          }
+        }
+        document.getElementById("homeNextStep").textContent = next;
+      }
+
+      // ---------------------------------------------------------------
+      // Profile — load on app entry, save on submit.
+      // Saving again clears the "loaded" flags so the next tab visit
+      // re-runs the AI with the updated profile.
+      // ---------------------------------------------------------------
+      async function loadProfile() {
+        var p = await getJSON("/api/profile");
+        if (p && p.name) {
+          document.getElementById("pname").value = p.name;
+          document.getElementById("prole").value = p.current_role || "";
+          document.getElementById("ptarget").value = p.target_role || "";
+          document.getElementById("pskills").value = p.skills || "";
+          if (p.experience) document.getElementById("pexp").value = p.experience;
+          document.getElementById("skillsTargetRole").textContent = "Target role: " + (p.target_role || "—");
+        }
+        renderHome();
+      }
+
+      document.getElementById("profileForm").addEventListener("submit", async function (e) {
+        e.preventDefault();
+        var name = document.getElementById("pname").value || "there";
+        var role = document.getElementById("ptarget").value;
+        var data = {
+          name: name,
+          current_role: document.getElementById("prole").value,
+          target_role: role,
+          skills: document.getElementById("pskills").value,
+          experience: document.getElementById("pexp").value,
+        };
+        document.getElementById("profileMsg").textContent = "Saving...";
+        var result = await postJSON("/api/profile", data);
+        if (result.error) {
+          document.getElementById("profileMsg").textContent = result.error;
+          return;
+        }
+        document.getElementById("skillsTargetRole").textContent = "Target role: " + (role || "—");
+        document.getElementById("profileMsg").textContent = "Saved — " + name + " targeting " + (role || "a new role") + ".";
+        // Profile changed, so re-run the AI tabs next time they're opened.
+        loaded = { analysis: false, skills: false, roadmap: false, interview: false };
+        appState = { career: null, skillGap: null, resume: null };
+        renderHome();
+      });
+
+      // ---------------------------------------------------------------
+      // Resume upload (frontend UI only — no backend route yet)
+      // ---------------------------------------------------------------
+      var resumeFile = null;
+
+      document.getElementById("chooseResumeBtn").addEventListener("click", function () {
+        document.getElementById("resumeFileInput").click();
+      });
+
+      document.getElementById("replaceResumeBtn").addEventListener("click", function () {
+        document.getElementById("resumeFileInput").click();
+      });
+
+      document.getElementById("resumeFileInput").addEventListener("change", function (e) {
+        var file = e.target.files[0];
+        if (!file) return;
+
+        var name = file.name.toLowerCase();
+        var isAllowed = name.endsWith(".pdf") || name.endsWith(".doc") || name.endsWith(".docx");
+        if (!isAllowed) {
+          document.getElementById("resumeUploadStatus").textContent = "Please choose a PDF or DOCX file.";
+          return;
+        }
+
+        resumeFile = file;
+        document.getElementById("resumeFileName").textContent = file.name;
+        document.getElementById("resumeFileSize").textContent = Math.round(file.size / 1024) + " KB";
+        document.getElementById("resumeFileRow").hidden = false;
+        document.getElementById("resumeUploadStatus").textContent = "Ready to upload.";
+      });
+
+      document.getElementById("uploadResumeBtn").addEventListener("click", async function () {
+        if (!resumeFile) return;
+        document.getElementById("resumeUploadStatus").textContent = "Uploading...";
+
+        try {
+          var formData = new FormData();
+          formData.append("resume", resumeFile);
+          var res = await fetch("/api/resume/upload", { method: "POST", body: formData });
+
+          if (!res.ok) {
+            document.getElementById("resumeUploadStatus").textContent =
+              "This upload endpoint isn't available on the server yet — the button is ready for when it is.";
+            return;
+          }
+
+          var data = await res.json();
+          document.getElementById("resumeUploadStatus").textContent = data.message || "Resume uploaded.";
+        } catch (err) {
+          document.getElementById("resumeUploadStatus").textContent =
+            "Couldn't reach the server. This is ready to connect once /api/resume/upload exists.";
+        }
+      });
+
+      document.getElementById("removeResumeBtn").addEventListener("click", function () {
+        resumeFile = null;
+        document.getElementById("resumeFileInput").value = "";
+        document.getElementById("resumeFileRow").hidden = true;
+        document.getElementById("resumeUploadStatus").textContent = "No resume uploaded yet.";
+      });
+
+      // ---------------------------------------------------------------
+      // Career analysis
+      // ---------------------------------------------------------------
+      async function runCareerAnalysis() {
+        document.getElementById("analysisBestFit").textContent = "Analyzing…";
+        document.getElementById("analysisSubtitle").textContent = "Gemini is reviewing your profile...";
+        document.getElementById("analysisAlternatives").innerHTML = '<p class="hint">Loading…</p>';
+        document.getElementById("analysisWhy").textContent = "Loading your personalized analysis…";
+        document.getElementById("analysisChips").innerHTML = "";
+
+        var result = await postJSON("/api/career-analysis", {});
+        if (result.error) {
+          document.getElementById("analysisBestFit").textContent = "Couldn't complete analysis";
+          document.getElementById("analysisSubtitle").textContent = result.error;
+          document.getElementById("analysisAlternatives").innerHTML = "";
+          document.getElementById("analysisWhy").textContent = "Please try again in a moment.";
+          return;
+        }
+
+        document.getElementById("analysisBestFit").textContent = result.best_fit_career || "—";
+        document.getElementById("analysisRing").style.setProperty("--v", result.match_percentage || 0);
+        document.getElementById("analysisPercent").textContent = (result.match_percentage || 0) + "%";
+        document.getElementById("analysisSubtitle").textContent = "Best-fit role based on your saved profile.";
+
+        var altHtml = "";
+        (result.alternative_careers || []).forEach(function (a) {
+          altHtml += '<div class="row"><span>' + a.title + "</span><b>" + a.match_percentage + "%</b></div>";
+          altHtml +=
+            '<div class="bar' + (a.match_percentage < 60 ? " warn" : "") +
+            '"><i style="width:' + a.match_percentage + '%"></i></div>';
+        });
+        document.getElementById("analysisAlternatives").innerHTML = altHtml || '<p class="hint">No alternatives returned.</p>';
+
+        document.getElementById("analysisWhy").textContent =
+          (result.recommendations && result.recommendations.join(" ")) || "No additional notes.";
+
+        var chipHtml =
+          chipsHtml(result.strengths, "good") +
+          chipsHtml(result.weaknesses, "gap") +
+          chipsHtml(result.missing_skills, "gap");
+        document.getElementById("analysisChips").innerHTML = chipHtml;
+
+        appState.career = result;
+        renderHome();
+      }
+
+      // ---------------------------------------------------------------
+      // Skill gap
+      // ---------------------------------------------------------------
+      async function runSkillGap() {
+        document.getElementById("existingSkills").innerHTML = '<span class="chip good">Loading…</span>';
+        document.getElementById("missingSkills").innerHTML = '<span class="chip gap">Loading…</span>';
+        document.getElementById("learningOrder").innerHTML = '<p class="hint">Loading…</p>';
+
+        var result = await postJSON("/api/skill-gap", {});
+        if (result.error) {
+          document.getElementById("existingSkills").innerHTML = "";
+          document.getElementById("missingSkills").innerHTML = "";
+          document.getElementById("learningOrder").innerHTML = '<p class="hint">' + result.error + "</p>";
+          return;
+        }
+
+        document.getElementById("existingSkills").innerHTML = chipsHtml(result.existing_skills, "good") ||
+          '<p class="hint">No existing skills found.</p>';
+
+        var missHtml = "";
+        (result.missing_skills || []).forEach(function (m) {
+          missHtml +=
+            '<span class="chip gap" title="' + (m.explanation || "") + '">' +
+            m.skill + " · " + m.priority + "</span>";
+        });
+        document.getElementById("missingSkills").innerHTML = missHtml || '<p class="hint">No gaps found.</p>';
+
+        var orderHtml = "";
+        (result.learning_order || []).forEach(function (item, i) {
+          orderHtml += '<div class="row"><span>' + (i + 1) + ". " + item + "</span></div>";
+        });
+        document.getElementById("learningOrder").innerHTML = orderHtml || '<p class="hint">No order suggested.</p>';
+
+        appState.skillGap = result;
+        renderHome();
+      }
+
+      // ---------------------------------------------------------------
+      // Roadmap
+      // ---------------------------------------------------------------
+      async function runRoadmap() {
+        document.getElementById("roadmapTimeline").innerHTML = "<li><b>Loading…</b><small>Generating your roadmap.</small></li>";
+
+        var result = await postJSON("/api/roadmap", {});
+        if (result.error) {
+          document.getElementById("roadmapTimeline").innerHTML = "<li><b>Couldn't generate roadmap</b><small>" + result.error + "</small></li>";
+          return;
+        }
+
+        document.getElementById("roadmapHeading").textContent = (result.total_weeks || "8-12") + "-week roadmap";
+
+        var html = "";
+        (result.phases || []).forEach(function (p) {
+          html += "<li><b>" + p.weeks + " · " + p.title + "</b><small>" + p.details + "</small></li>";
+        });
+        document.getElementById("roadmapTimeline").innerHTML = html || "<li><b>No roadmap returned</b></li>";
+      }
+
+      // ---------------------------------------------------------------
+      // Resume analyzer
+      // ---------------------------------------------------------------
+      document.getElementById("resumeBtn").addEventListener("click", async function () {
+        var text = document.getElementById("resumeText").value.trim();
+        if (!text) {
+          document.getElementById("resumeText").focus();
+          return;
+        }
+
+        var btn = document.getElementById("resumeBtn");
+        var originalLabel = btn.textContent;
+        btn.textContent = "Analyzing...";
+        btn.disabled = true;
+
+        var result = await postJSON("/api/resume-analysis", { resume_text: text });
+
+        btn.textContent = originalLabel;
+        btn.disabled = false;
+
+        var box = document.getElementById("resumeResult");
+        box.hidden = false;
+
+        if (result.error) {
+          document.getElementById("resumeHeadline").textContent = "Couldn't analyze resume";
+          document.getElementById("resumeHintText").textContent = result.error;
+          document.getElementById("resumeChips").innerHTML = "";
+          document.getElementById("resumeExtra").textContent = "";
+          return;
+        }
+
+        box.querySelector(".ring").style.setProperty("--v", result.overall_score || 0);
+        document.getElementById("resumeScore").textContent = result.overall_score || 0;
+        document.getElementById("resumeHeadline").textContent = "Estimated compatibility score";
+        document.getElementById("resumeHintText").textContent =
+          "This is an estimate, not an official ATS score.";
+
+        var chipHtml =
+          chipsHtml(result.strengths, "good") +
+          chipsHtml(result.weaknesses, "gap") +
+          chipsHtml(result.missing_keywords, "gap") +
+          chipsHtml(result.missing_skills, "gap");
+        document.getElementById("resumeChips").innerHTML = chipHtml;
+
+        var extraParts = [];
+        if (result.ats_observations && result.ats_observations.length) {
+          extraParts.push("ATS notes: " + result.ats_observations.join(" "));
+        }
+        if (result.improvement_suggestions && result.improvement_suggestions.length) {
+          extraParts.push("Suggestions: " + result.improvement_suggestions.join(" "));
+        }
+        document.getElementById("resumeExtra").textContent = extraParts.join(" ");
+
+        appState.resume = result;
+        renderHome();
+      });
+
+      // ---------------------------------------------------------------
+      // Mock interview
+      // ---------------------------------------------------------------
+      var interviewQuestions = [];
+      var qi = 0;
+
+      async function startInterview() {
+        document.getElementById("qText").textContent = "Loading questions…";
+        document.getElementById("feedback").textContent = "";
+
+        var result = await postJSON("/api/mock-interview", { action: "start" });
+        if (result.error || !result.questions || !result.questions.length) {
+          document.getElementById("qText").textContent = "Couldn't load questions";
+          document.getElementById("feedback").textContent = result.error || "Please try reopening this tab.";
+          return;
+        }
+
+        interviewQuestions = result.questions;
+        qi = 0;
+        document.getElementById("qTotal").textContent = interviewQuestions.length;
+        renderQ();
+      }
+
+      function renderQ() {
+        document.getElementById("qIndex").textContent = qi + 1;
+        document.getElementById("qText").textContent = interviewQuestions[qi];
+        document.getElementById("answer").value = "";
+        document.getElementById("feedback").textContent = "";
+      }
+
+      document.getElementById("submitAnswer").addEventListener("click", async function () {
+        var a = document.getElementById("answer").value.trim();
+        if (!a) {
+          document.getElementById("feedback").textContent = "Write an answer first, then submit for feedback.";
+          return;
+        }
+        if (!interviewQuestions.length) return;
+
+        document.getElementById("feedback").textContent = "Evaluating your answer...";
+        var result = await postJSON("/api/mock-interview", {
+          action: "evaluate",
+          question: interviewQuestions[qi],
+          answer: a,
+        });
+
+        if (result.error) {
+          document.getElementById("feedback").textContent = result.error;
+          return;
+        }
+
+        var suggestions = result.improvement_suggestions ? result.improvement_suggestions.join(" ") : "";
+        document.getElementById("feedback").textContent = "Score: " + result.score + "/10. " + suggestions;
+      });
+
+      document.getElementById("nextQ").addEventListener("click", function () {
+        if (!interviewQuestions.length) return;
+        qi = (qi + 1) % interviewQuestions.length;
+        renderQ();
+      });
+
+      // ---------------------------------------------------------------
+      // AI assistant
+      // ---------------------------------------------------------------
+      var thread = document.getElementById("thread");
+      function push(text, who) {
+        var el = document.createElement("div");
+        el.className = "msg " + who;
+        el.textContent = text;
+        thread.appendChild(el);
+        thread.scrollTop = thread.scrollHeight;
+      }
+
+      async function send() {
+        var input = document.getElementById("chatInput");
+        var text = input.value.trim();
+        if (!text) return;
+        push(text, "me");
+        input.value = "";
+        push("Thinking...", "ai");
+
+        var result = await postJSON("/api/chat", { message: text });
+        thread.removeChild(thread.lastChild);
+        push(result.reply || result.error || "Sorry, I couldn't respond right now.", "ai");
+      }
+
+      document.getElementById("sendChat").addEventListener("click", send);
+      document.getElementById("chatInput").addEventListener("keydown", function (e) {
+        if (e.key === "Enter") send();
+      });
+    </script>
+  </body>
+</html>
